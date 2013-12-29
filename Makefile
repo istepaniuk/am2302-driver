@@ -63,6 +63,8 @@ $(TARGET).elf: $(OBJS)
 	@echo	
 	@echo Linking: $@
 	$(LD) $(LFLAGS) -o $@ $^
+	@echo
+	@echo Creating list file:
 	$(OD) -h -S $(TARGET).elf > $(TARGET).lst
 		
 flash: $(TARGET).elf size
