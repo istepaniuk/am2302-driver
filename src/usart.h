@@ -7,5 +7,4 @@
 
 void usart_putc(uint8_t ch);
 void usart_puts(char *ptr);
-int _write(int file, char *ptr, int len);
-void init_usart();
+void usart_init();

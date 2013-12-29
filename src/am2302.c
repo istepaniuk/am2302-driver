@@ -1,54 +1,34 @@
-#include "stm32f10x_it.h"
+#include <stdbool.h>
+#include "interrupts.h"
 #include "usart.h"
+#include "timer.h"
 
-enum { false, true };
+bool acquiring = false;
+int thecount = 0;
+bool ready = true;
 
-void NMI_Handler(void) { }
-
-void HardFault_Handler(void)
+void setup_interrupt()
 {
-  while (1) { }
+	NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0F;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
 }
 
-void MemManage_Handler(void)
+void delay(int count)
 {
-  while (1) { }
+    while(count--){};
 }
 
-void BusFault_Handler(void)
+void am2302_init()
 {
-  while (1) { }
+    setup_interrupt();
 }
 
-void UsageFault_Handler(void)
+void am2302_acquire(void)
 {
-  while (1) { }
-}
-
-void SVC_Handler(void) { }
-
-void DebugMon_Handler(void) { }
-
-void PendSV_Handler(void) { }
-
-void SysTick_Handler(void) { }
-
-void delay(unsigned long delay)
-{
-    while(delay) {
-        delay--;
-    }
-}
-
-int acquiring = false;
-int ready = true;
-
-void EXTI0_IRQHandler(void)
-{
-	if(EXTI_GetITStatus(EXTI_Line0) == RESET)
-	    return;
-
-
     if(ready)
     {
         ready = false;
@@ -72,41 +52,28 @@ void EXTI0_IRQHandler(void)
         GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
         GPIO_Init(GPIOB, &GPIO_InitStructure);        
 
-        TIM_Cmd(TIM2, ENABLE);
-        TIM_SetCounter(TIM2, 0);
+        timer2_start();
         while(!ready && (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_9) == 1)) { }
         while(!ready && (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_9) == 0)) { }
 
-        TIM_SetCounter(TIM2, 0);
         acquiring = true;
     }
 
     EXTI_ClearITPendingBit(EXTI_Line0);
 }
 
-int thecount = 0;
-
-void EXTI9_5_IRQHandler(void)
+void am2302_interrupt_handler(void)
 {
-	if(EXTI_GetITStatus(EXTI_Line9) == RESET)
-	    return;
-
     if(acquiring)
     { 
         thecount++;
-        GPIOC->ODR ^= GPIO_Pin_9;
 	}
-
-  	EXTI_ClearITPendingBit(EXTI_Line9);
 }
 
-void TIM2_IRQHandler(void)
+void am2302_finished(void)
 {
-    if (TIM_GetITStatus(TIM2, TIM_IT_Update) == RESET)
-        return;
     if(!acquiring)
         return;
-
     TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
     GPIO_WriteBit(GPIOC, GPIO_Pin_8, 0);
     TIM_Cmd(TIM2, DISABLE);

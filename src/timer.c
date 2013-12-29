@@ -1,10 +1,22 @@
-#include "stm32f10x.h"
 #include <stdbool.h>
+#include "stm32f10x.h"
 
-bool finished = false;
+static bool finished = false;
+
+static void setup_interrupt()
+{
+	NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+}
 
 void timer2_init()
 {
+    setup_interrupt();
+
     // Set timer
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
@@ -36,7 +48,7 @@ bool timer2_has_finished()
 
 int timer2_get_current_counter()
 {
-    TIM_GetCounter(TIM2)
+    TIM_GetCounter(TIM2);
     return 0;
 }
 

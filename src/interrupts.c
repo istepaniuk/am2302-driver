@@ -1,4 +1,4 @@
-#include "stm32f10x_it.h"
+#include "interrupts.h"
 #include "usart.h"
 #include "timer.h"
 #include "button.h"

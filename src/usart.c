@@ -47,7 +47,7 @@ void printf(char *ptr)
     usart_puts(ptr);
 }
 
-void init_usart()
+void usart_init()
 {
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE); 
 

@@ -1,0 +1,10 @@
+# Object files
+blink-*/*.o
+
+# Executables
+blink-*/*.elf
+blink-*/*.lst
+blink-*/*.app
+
+# Backup files
+*.*~
