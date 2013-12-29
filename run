@@ -1,0 +1,7 @@
+#!/bin/bash
+
+../toolchain/bin/arm-none-eabi-gdb << EOF
+target extended-remote :4242
+continue
+EOF
+
