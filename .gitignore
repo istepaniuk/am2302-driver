@@ -1,10 +1,11 @@
 # Object files
-*/*.o
+*.o
 
 # Executables
-*/*.elf
-*/*.lst
-*/*.app
+*.elf
+*.lst
+*.bin
+*.app
 
 # Backup files
 *.*~
