@@ -1,35 +1,33 @@
-#include "stm32f10x.h"
 #include "leds.h"
+#include "platform.h"
+#include "hardware.h"
 
 void leds_init()
 {
-    GPIO_InitTypeDef GPIO_InitStructure;
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-    GPIO_Init(GPIOC, &GPIO_InitStructure);
+    gpio_set_pin_mode(GREEN_LED_PIN, GPIO_MODE_OUT_PUSH_PULL);
+    gpio_set_pin_mode(BLUE_LED_PIN, GPIO_MODE_OUT_PUSH_PULL);
 
-    leds_green_off();
-    leds_blue_off();
+    leds_turn_green_off();
+    leds_turn_blue_off();
 }
 
-void leds_green_off()
+void leds_turn_green_off()
 {
-    GPIO_WriteBit(GPIOC, GPIO_Pin_9, 0);
+    gpio_set_pin_low(GREEN_LED_PIN);
 }
 
-void leds_blue_off()
+void leds_turn_blue_off()
 {
-    GPIO_WriteBit(GPIOC, GPIO_Pin_8, 0);
+    gpio_set_pin_low(BLUE_LED_PIN);
 }
 
-void leds_green_on()
+void leds_turn_green_on()
 {
-    GPIO_WriteBit(GPIOC, GPIO_Pin_9, 1);
+    gpio_set_pin_high(GREEN_LED_PIN);
 }
 
-void leds_blue_on()
+void leds_turn_blue_on()
 {
-    GPIO_WriteBit(GPIOC, GPIO_Pin_8, 1);
+    gpio_set_pin_high(BLUE_LED_PIN);
 }
 
