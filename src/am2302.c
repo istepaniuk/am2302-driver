@@ -25,14 +25,16 @@ static void am2302_interrupt_handler(void)
         return;
     int timestamp = timer2_get_current_counter();
     int bit_value = (timestamp - last_timestamp) > HI_BIT_THRESHOLD_TIME ? 0 : 1;
+    last_timestamp = timestamp;
+    if( timestamp < 250 ) 
+        return;
     
-    if(bit_position < 32)
+    if (bit_position < 32)
         raw_data_lo |= bit_value << bit_position;
     else
         raw_data_hi |= bit_value << (bit_position - 32);
     
     bit_position++;
-    last_timestamp = timestamp;
 }
 
 void am2302_init()
@@ -60,13 +62,19 @@ void am2302_acquire(void)
     
     acquiring = true;
     
-    while(!timer2_has_finished()) { }
+    while(!timer2_has_finished() && bit_position < 40) { }
+    timer2_stop();
     
     acquiring = false;
+    if(bit_position < 40)
+        usart_puts("Timeout!\n");
 
     usart_putc('L');
     dump32h(raw_data_lo);
     
     usart_putc('H');
     dump32h(raw_data_hi);
+    
+    usart_putc('P');
+    dump32h(bit_position);
 }
