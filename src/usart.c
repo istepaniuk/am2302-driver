@@ -78,3 +78,53 @@ void usart_init()
 
     printf("USART Initialized.\n");
 }
+
+void reverse(char* str, int length){
+    int i = 0, j = length-1;
+    char tmp;
+    while (i < j) {
+        tmp = str[i];
+        str[i] = str[j];
+        str[j] = tmp;
+        i++; j--;
+    }
+}
+
+int itoa(int n, char* out)
+{
+    int sign = n < 0? 1: 0;
+    int i = 0;
+    if (n == 0) {
+        out[i++] = '0';
+    } else if (n < 0) {
+        out[i++] = '-';
+        n = -n;
+    }
+    while (n > 0) {
+        out[i++] = '0' + n % 10;
+        n /= 10;
+    }
+    out[i] = '\0';
+    reverse(out + sign, i - sign);
+    return 0;
+}
+
+void tohex(uint32_t n, char* out)
+{
+    int i;
+    char* hex = "0123456789ABCDEF";
+    
+    out[0] = '0';
+    out[1] = 'x';
+    for(i = 2; i < 10; i++)
+        out[i] = hex[(n >> ((9-i) * 4)) % 16];
+    out[10] = '\0';
+}
+
+void dump32h(uint32_t n)
+{
+    char str_v[12];
+    tohex(n, str_v);
+    usart_puts(str_v);
+    usart_putc('\n');
+}

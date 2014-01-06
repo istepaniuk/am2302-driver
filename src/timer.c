@@ -55,6 +55,5 @@ bool timer2_has_finished()
 
 int timer2_get_current_counter()
 {
-    TIM_GetCounter(TIM2);
-    return 0;
+    return TIM_GetCounter(TIM2);
 }

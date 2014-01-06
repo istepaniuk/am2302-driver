@@ -28,11 +28,7 @@ int main(void)
             delay(1000000);
             am2302_acquire();
             leds_turn_green_off();
-        }
-        else
-        {
-
-            delay(10000);
+            delay(10000000);
         }
     }
 }
