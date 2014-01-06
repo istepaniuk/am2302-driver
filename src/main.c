@@ -2,8 +2,9 @@
 #include "stm32f10x.h"
 #include "usart.h"
 #include "button.h"
-#include "timer.h"
 #include "leds.h"
+
+void delay(int count) { while(count--){}; }
 
 int main(void)
 {
@@ -13,18 +14,25 @@ int main(void)
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
 
-    GPIO_InitTypeDef GPIO_InitStructure;
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource9);
-	
-    timer2_init();
     usart_init();
     button_init();
     leds_init();
+    am2302_init();
+    
+    leds_turn_blue_on();
 
-    while(1) { }
+    while(1) { 
+        if(button_is_depressed())
+        {
+            leds_turn_green_on();
+            delay(1000000);
+            am2302_acquire();
+            leds_turn_green_off();
+        }
+        else
+        {
+
+            delay(10000);
+        }
+    }
 }

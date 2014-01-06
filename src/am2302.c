@@ -1,85 +1,56 @@
 #include <stdbool.h>
 #include "interrupts.h"
+#include "leds.h" 
 #include "usart.h"
 #include "timer.h"
+#include "platform.h"
+#include "hardware.h"
 
-bool acquiring = false;
-int thecount = 0;
-bool ready = true;
+static bool acquiring = false;
+static int thecount = 0;
 
-void setup_interrupt()
-{
-	NVIC_InitTypeDef NVIC_InitStructure;
-    NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0F;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-}
-
-void delay(int count)
+static void delay(int count)
 {
     while(count--){};
 }
 
+void am2302_interrupt_handler(void)
+{
+    if(!acquiring)
+        return;
+    thecount++;
+}
+
 void am2302_init()
 {
-    setup_interrupt();
+    timer2_init();
+    gpio_set_interrupt_on_rising(AM2302_PIN, am2302_interrupt_handler);
 }
 
 void am2302_acquire(void)
 {
-    if(ready)
+    gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_OUT_PUSH_PULL);
+    gpio_set_pin_high(AM2302_PIN);
+    delay(50000);
+    gpio_set_pin_low(AM2302_PIN);
+    delay(25000);
+    gpio_set_pin_high(AM2302_PIN);
+    gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_IN_FLOATING);
+    timer2_start();
+    
+    //while(gpio_get_pin_state(AM2302_PIN) == 1) { }
+    //while(gpio_get_pin_state(AM2302_PIN) == 0) { }
+
+    acquiring = true;
+    
+    while(!timer2_has_finished())
     {
-        ready = false;
-        acquiring = false;
-        GPIO_WriteBit(GPIOC, GPIO_Pin_8, 1);
-        
-        GPIO_InitTypeDef GPIO_InitStructure;
-        GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
-        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-        GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-        GPIO_Init(GPIOB, &GPIO_InitStructure);        
-       
-        GPIO_WriteBit(GPIOB, GPIO_Pin_9, 1);
-        delay(50000);
-        GPIO_WriteBit(GPIOB, GPIO_Pin_9, 0);
-        delay(25000);
-        GPIO_WriteBit(GPIOB, GPIO_Pin_9, 1);
-
-        GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
-        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-        GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-        GPIO_Init(GPIOB, &GPIO_InitStructure);        
-
-        timer2_start();
-        while(!ready && (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_9) == 1)) { }
-        while(!ready && (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_9) == 0)) { }
-
-        acquiring = true;
+    
     }
-
-    EXTI_ClearITPendingBit(EXTI_Line0);
-}
-
-void am2302_interrupt_handler(void)
-{
-    if(acquiring)
-    { 
-        thecount++;
-	}
-}
-
-void am2302_finished(void)
-{
-    if(!acquiring)
-        return;
-    TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-    GPIO_WriteBit(GPIOC, GPIO_Pin_8, 0);
-    TIM_Cmd(TIM2, DISABLE);
-    delay(500000);
+    leds_turn_blue_off();
+    
     acquiring = false;
-    ready = true;
+    leds_turn_blue_off();
     while(thecount) {
         usart_putc('X');
         thecount--;

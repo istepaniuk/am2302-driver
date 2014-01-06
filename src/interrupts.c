@@ -23,18 +23,18 @@ void set_timer2_interrupt_callback(void *callback)
 
 void EXTI0_IRQHandler(void)
 {
-	if(EXTI_GetITStatus(EXTI_Line0) == RESET)
-	    return;
+    if(EXTI_GetITStatus(EXTI_Line0) == RESET)
+        return;
     exti_line0_interrupt_callback();
-  	EXTI_ClearITPendingBit(EXTI_Line0);
+    EXTI_ClearITPendingBit(EXTI_Line0);
 }
 
 void EXTI9_5_IRQHandler(void)
 {
-	if(EXTI_GetITStatus(EXTI_Line9) == RESET)
-	    return;
+    if(EXTI_GetITStatus(EXTI_Line9) == RESET)
+        return;
     exti_line9_interrupt_callback();
-  	EXTI_ClearITPendingBit(EXTI_Line9);
+    EXTI_ClearITPendingBit(EXTI_Line9);
 }
 
 void TIM2_IRQHandler(void)
@@ -49,22 +49,22 @@ void NMI_Handler(void) { }
 
 void HardFault_Handler(void)
 {
-  while (1) { }
+    while (1) { }
 }
 
 void MemManage_Handler(void)
 {
-  while (1) { }
+    while (1) { }
 }
 
 void BusFault_Handler(void)
 {
-  while (1) { }
+    while (1) { }
 }
 
 void UsageFault_Handler(void)
 {
-  while (1) { }
+    while (1) { }
 }
 
 void SVC_Handler(void) { }

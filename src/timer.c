@@ -1,7 +1,14 @@
 #include <stdbool.h>
 #include "stm32f10x.h"
+#include "interrupts.h"
 
 static bool finished = false;
+
+static void interrupt_handler()
+{
+    timer2_stop();
+    finished = true;    
+}
 
 static void setup_interrupt()
 {
@@ -11,12 +18,12 @@ static void setup_interrupt()
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
+    set_timer2_interrupt_callback(interrupt_handler);
 }
 
 void timer2_init()
 {
     setup_interrupt();
-
     // Set timer
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
@@ -50,10 +57,4 @@ int timer2_get_current_counter()
 {
     TIM_GetCounter(TIM2);
     return 0;
-}
-
-void timer2_interrupt_handler()
-{
-    timer2_stop();
-    finished = true;    
 }
