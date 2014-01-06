@@ -7,6 +7,7 @@
 #include "hardware.h"
 
 #define HI_BIT_THRESHOLD_TIME 100
+#define VALID_DATA_START_TIME 250
 
 static bool acquiring = false;
 static int bit_position;
@@ -16,7 +17,7 @@ static uint32_t raw_data_hi;
 
 static void delay(int count)
 {
-    while(count--){};
+    while(count--){ };
 }
 
 static void am2302_interrupt_handler(void)
@@ -26,7 +27,7 @@ static void am2302_interrupt_handler(void)
     int timestamp = timer2_get_current_counter();
     int bit_value = (timestamp - last_timestamp) > HI_BIT_THRESHOLD_TIME ? 0 : 1;
     last_timestamp = timestamp;
-    if( timestamp < 250 ) 
+    if( timestamp < VALID_DATA_START_TIME ) 
         return;
     
     if (bit_position < 32)
@@ -49,26 +50,23 @@ void am2302_acquire(void)
     last_timestamp = 0;
     raw_data_lo = 0;
     raw_data_hi = 0;
+    acquiring = false;
     
     gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_OUT_PUSH_PULL);
-    gpio_set_pin_high(AM2302_PIN);
-    delay(50000);
     gpio_set_pin_low(AM2302_PIN);
-    delay(25000);
+    delay(35200);
     gpio_set_pin_high(AM2302_PIN);
     gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_IN_FLOATING);
     
     timer2_start();
-    
     acquiring = true;
-    
     while(!timer2_has_finished() && bit_position < 40) { }
+    acquiring = false;
     timer2_stop();
     
-    acquiring = false;
     if(bit_position < 40)
         usart_puts("Timeout!\n");
-
+    
     usart_putc('L');
     dump32h(raw_data_lo);
     
