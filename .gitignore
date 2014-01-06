@@ -9,3 +9,6 @@
 
 # Backup files
 *.*~
+
+# Other, IDE
+*.cproj
