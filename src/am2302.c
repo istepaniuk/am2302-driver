@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include "interrupts.h"
-#include "leds.h" 
 #include "usart.h"
 #include "timer.h"
 #include "platform.h"
@@ -32,11 +31,11 @@ static void interrupt_handler()
     if(!acquiring)
         return;
     int timestamp = timer2_get_current_counter();
-    uint64_t bit_value = (timestamp - last_timestamp) > HI_BIT_THRESHOLD_TIME;
+    int bit_value = (timestamp - last_timestamp) > HI_BIT_THRESHOLD_TIME;
     last_timestamp = timestamp;
     
     if (timestamp > VALID_DATA_START_TIME)
-        raw_data |= bit_value << bit_position++;
+        raw_data |= (uint64_t) bit_value << bit_position++;
 }
 
 static void reset()
@@ -62,22 +61,35 @@ static int get_int_from_bits(uint64_t bits, int offset, int size)
     int result = 0;
     for (i = 0; i < size * 8; i++)
     {
-        int bit = (bits & ((uint64_t) 1 << offset + i)) > 0;
+        uint64_t bit_mask = ((uint64_t) 1 << offset + i);
+        int bit = (bits & bit_mask) > 0;
         result |= bit << --j;
     }
-
     return result;
 }
 
-static struct am2302_sensor_data get_sensor_data()
+static struct am2302_sensor_data get_converted_sensor_data()
 {
     struct am2302_sensor_data sdata;
     sdata.humidity = get_int_from_bits(raw_data, 0,  sizeof(int16_t));
     sdata.temperature = get_int_from_bits(raw_data, 16, sizeof(int16_t));
     sdata.temperature = get_2complement_from_signed_magnitude(sdata.temperature);
-      
-    //uint8_t parity = get_int_from_bits(raw_data, 32, sizeof(uint8_t));
+
     return sdata;
+}
+
+static int calculate_checksum()
+{
+    int i; uint8_t checksum = 0;
+    for (i = 0; i < 4; i++)
+        checksum += get_int_from_bits(raw_data, i * 8, sizeof(uint8_t));
+    return checksum;
+}
+
+static bool has_parity_errors()
+{
+    uint8_t parity = get_int_from_bits(raw_data, 32, sizeof(uint8_t));
+    return parity != calculate_checksum() ;
 }
 
 void am2302_acquire()
@@ -96,9 +108,12 @@ void am2302_acquire()
     timer2_stop();
     
     if(bit_position < 40)
-        usart_puts("Timeout!\n");
+        usart_puts("Timeout\n");
     
-    struct am2302_sensor_data a = get_sensor_data();
+    if(has_parity_errors())
+        usart_puts("Invalid data\n");
+    
+    struct am2302_sensor_data a = get_converted_sensor_data();
     
     usart_putc('h');
     printint(a.humidity);
