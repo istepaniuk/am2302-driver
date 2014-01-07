@@ -121,7 +121,7 @@ void tohex(uint16_t n, char* out)
     out[7] = '\0';
 }
 
-void dump16h(uint16_t n)
+void printhex(uint16_t n)
 {
     char str_v[12];
     tohex(n, str_v);
@@ -129,7 +129,7 @@ void dump16h(uint16_t n)
     usart_putc('\n');
 }
 
-void dump16(uint16_t n)
+void printint(uint16_t n)
 {
     char str_v[12];
     itoa(n, str_v);

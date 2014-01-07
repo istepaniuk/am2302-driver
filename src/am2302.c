@@ -13,17 +13,16 @@ static bool acquiring = false;
 static int bit_position;
 static int last_timestamp;
 
-struct amdata
+struct sensor_data
 {
-    uint16_t humidity;  
+    uint16_t humidity;
     int16_t temperature;
+    uint8_t _padding;
     uint8_t parity;
-    uint8_t empty;
 };
 
 
-struct amdata a;
-uint64_t *buffer = &a;
+uint64_t raw_data;
 
 static void delay(int count)
 {
@@ -35,28 +34,43 @@ static void interrupt_handler()
     if(!acquiring)
         return;
     int timestamp = timer2_get_current_counter();
-    int bit_value = (timestamp - last_timestamp) > HI_BIT_THRESHOLD_TIME;
+    uint64_t bit_value = (timestamp - last_timestamp) > HI_BIT_THRESHOLD_TIME;
     last_timestamp = timestamp;
-    if( timestamp < VALID_DATA_START_TIME ) 
-        return;
     
-    *buffer |= bit_value << bit_position;
-    
-    bit_position++;
+    if (timestamp > VALID_DATA_START_TIME)
+        raw_data |= bit_value << bit_position++;
 }
 
 static void reset()
 {
     bit_position = 0;
     last_timestamp = 0;
-    *buffer = 0;
+    raw_data = 0;
     acquiring = false;
 }
 
-void am2302_init()
+static int16_t sm2tc(uint16_t x) 
 {
-    timer2_init();
-    gpio_set_interrupt_on_rising(AM2302_PIN, interrupt_handler);
+    int16_t sign_mask = ~(1 << 15);
+    int16_t positive_part = x & sign_mask;
+    bool is_negative = (~sign_mask & x);
+    return is_negative ? -positive_part : positive_part;
+}
+
+static struct sensor_data get_sensor_data()
+{
+    struct sensor_data sdata;
+    uint64_t *psdata = &sdata;
+    *psdata = 0;
+    int i;
+    for(i = 0; i < 40; i++)
+    {
+        uint64_t bit = (raw_data & ((int64_t) 1 << i)) > 0;
+        int new_position = 15 - (i % 16) + (i / 16) * 16;
+        *psdata |= bit << new_position;
+    }
+    sdata.temperature = sm2tc(sdata.temperature);
+    return sdata;
 }
 
 void am2302_acquire()
@@ -77,24 +91,22 @@ void am2302_acquire()
     if(bit_position < 40)
         usart_puts("Timeout!\n");
     
+    struct sensor_data a = get_sensor_data();
+    
     usart_putc('h');
-    dump16h(a.humidity);
+    printint(a.humidity);
     
-    //usart_putc('H');dump16(a.humidity);
- 
     usart_putc('t');
-    dump16h(a.temperature);
+    printint(a.temperature);
     
-    //usart_putc('T');dump16(a.temperature);
-        
     usart_putc('p');
-    dump16h(a.parity);
-    
-    usart_putc('e');
-    dump16h(a.empty);
-    
-    usart_putc('+');
-    dump16h(bit_position);
+    printhex(a.parity);
     
     usart_putc('\n');
+}
+
+void am2302_init()
+{
+    timer2_init();
+    gpio_set_interrupt_on_rising(AM2302_PIN, interrupt_handler);
 }
