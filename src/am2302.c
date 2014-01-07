@@ -13,12 +13,10 @@ static bool acquiring = false;
 static int bit_position;
 static int last_timestamp;
 
-struct sensor_data
+struct am2302_sensor_data
 {
     uint16_t humidity;
     int16_t temperature;
-    uint8_t _padding;
-    uint8_t parity;
 };
 
 
@@ -49,27 +47,36 @@ static void reset()
     acquiring = false;
 }
 
-static int16_t sm2tc(uint16_t x) 
+static int16_t get_2complement_from_signed_magnitude(uint16_t x) 
 {
-    int16_t sign_mask = ~(1 << 15);
+    int16_t sign_mask = 0x8FFF;
     int16_t positive_part = x & sign_mask;
     bool is_negative = (~sign_mask & x);
     return is_negative ? -positive_part : positive_part;
 }
 
-static struct sensor_data get_sensor_data()
+static int get_int_from_bits(uint64_t bits, int offset, int size)
 {
-    struct sensor_data sdata;
-    uint64_t *psdata = &sdata;
-    *psdata = 0;
     int i;
-    for(i = 0; i < 40; i++)
+    int j = size * 8;
+    int result = 0;
+    for (i = 0; i < size * 8; i++)
     {
-        uint64_t bit = (raw_data & ((int64_t) 1 << i)) > 0;
-        int new_position = 15 - (i % 16) + (i / 16) * 16;
-        *psdata |= bit << new_position;
+        int bit = (bits & ((uint64_t) 1 << offset + i)) > 0;
+        result |= bit << --j;
     }
-    sdata.temperature = sm2tc(sdata.temperature);
+
+    return result;
+}
+
+static struct am2302_sensor_data get_sensor_data()
+{
+    struct am2302_sensor_data sdata;
+    sdata.humidity = get_int_from_bits(raw_data, 0,  sizeof(int16_t));
+    sdata.temperature = get_int_from_bits(raw_data, 16, sizeof(int16_t));
+    sdata.temperature = get_2complement_from_signed_magnitude(sdata.temperature);
+      
+    //uint8_t parity = get_int_from_bits(raw_data, 32, sizeof(uint8_t));
     return sdata;
 }
 
@@ -91,16 +98,12 @@ void am2302_acquire()
     if(bit_position < 40)
         usart_puts("Timeout!\n");
     
-    struct sensor_data a = get_sensor_data();
+    struct am2302_sensor_data a = get_sensor_data();
     
     usart_putc('h');
     printint(a.humidity);
-    
     usart_putc('t');
     printint(a.temperature);
-    
-    usart_putc('p');
-    printhex(a.parity);
     
     usart_putc('\n');
 }
