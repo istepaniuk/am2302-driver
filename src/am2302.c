@@ -21,8 +21,9 @@ struct am2302_sensor_data
 
 uint64_t raw_data;
 
-static void delay(int count)
+static inline void wait_1ms()
 {
+    int count = 35200;
     while(count--){ };
 }
 
@@ -38,7 +39,7 @@ static void interrupt_handler()
         raw_data |= (uint64_t) bit_value << bit_position++;
 }
 
-static void reset()
+static inline void reset()
 {
     bit_position = 0;
     last_timestamp = 0;
@@ -46,7 +47,7 @@ static void reset()
     acquiring = false;
 }
 
-static int16_t get_2complement_from_signed_magnitude(uint16_t x) 
+static inline int16_t get_2complement_from_signed_magnitude(uint16_t x) 
 {
     int16_t sign_mask = 0x8FFF;
     int16_t positive_part = x & sign_mask;
@@ -61,14 +62,14 @@ static int get_int_from_bits(uint64_t bits, int offset, int size)
     int result = 0;
     for (i = 0; i < size * 8; i++)
     {
-        uint64_t bit_mask = ((uint64_t) 1 << offset + i);
+        uint64_t bit_mask = (uint64_t) 1 << (offset + i);
         int bit = (bits & bit_mask) > 0;
         result |= bit << --j;
     }
     return result;
 }
 
-static struct am2302_sensor_data get_converted_sensor_data()
+static inline struct am2302_sensor_data get_converted_sensor_data()
 {
     struct am2302_sensor_data sdata;
     sdata.humidity = get_int_from_bits(raw_data, 0,  sizeof(int16_t));
@@ -78,7 +79,7 @@ static struct am2302_sensor_data get_converted_sensor_data()
     return sdata;
 }
 
-static int calculate_checksum()
+static inline int calculate_checksum()
 {
     int i; uint8_t checksum = 0;
     for (i = 0; i < 4; i++)
@@ -86,20 +87,25 @@ static int calculate_checksum()
     return checksum;
 }
 
-static bool has_parity_errors()
+static inline bool has_parity_errors()
 {
     uint8_t parity = get_int_from_bits(raw_data, 32, sizeof(uint8_t));
     return parity != calculate_checksum() ;
 }
 
+static inline void send_start_signal()
+{
+    gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_OUT_PUSH_PULL);
+    gpio_set_pin_low(AM2302_PIN);
+    wait_1ms();
+    gpio_set_pin_high(AM2302_PIN);
+    gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_IN_FLOATING);
+}
+
 void am2302_acquire()
 {
     reset();
-    gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_OUT_PUSH_PULL);
-    gpio_set_pin_low(AM2302_PIN);
-    delay(35200);
-    gpio_set_pin_high(AM2302_PIN);
-    gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_IN_FLOATING);
+    send_start_signal();  
     
     timer2_start();
     acquiring = true;
