@@ -109,22 +109,30 @@ int itoa(int n, char* out)
     return 0;
 }
 
-void tohex(uint32_t n, char* out)
+void tohex(uint16_t n, char* out)
 {
     int i;
     char* hex = "0123456789ABCDEF";
     
     out[0] = '0';
     out[1] = 'x';
-    for(i = 2; i < 10; i++)
-        out[i] = hex[(n >> ((9-i) * 4)) % 16];
-    out[10] = '\0';
+    for(i = 2; i < 6; i++)
+        out[i] = hex[(n >> ((5-i) * 4)) % 16];
+    out[7] = '\0';
 }
 
-void dump32h(uint32_t n)
+void dump16h(uint16_t n)
 {
     char str_v[12];
     tohex(n, str_v);
+    usart_puts(str_v);
+    usart_putc('\n');
+}
+
+void dump16(uint16_t n)
+{
+    char str_v[12];
+    itoa(n, str_v);
     usart_puts(str_v);
     usart_putc('\n');
 }

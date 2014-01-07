@@ -22,13 +22,9 @@ int main(void)
     leds_turn_blue_on();
 
     while(1) { 
-        if(button_is_depressed())
-        {
-            leds_turn_green_on();
-            delay(1000000);
-            am2302_acquire();
-            leds_turn_green_off();
-            delay(10000000);
-        }
+        leds_turn_green_on();
+        am2302_acquire();
+        leds_turn_green_off();
+        delay(8000000);
     }
 }

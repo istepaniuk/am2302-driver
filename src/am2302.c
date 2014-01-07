@@ -12,46 +12,56 @@
 static bool acquiring = false;
 static int bit_position;
 static int last_timestamp;
-static uint32_t raw_data_lo;
-static uint32_t raw_data_hi;
+
+struct amdata
+{
+    uint16_t humidity;  
+    int16_t temperature;
+    uint8_t parity;
+    uint8_t empty;
+};
+
+
+struct amdata a;
+uint64_t *buffer = &a;
 
 static void delay(int count)
 {
     while(count--){ };
 }
 
-static void am2302_interrupt_handler(void)
+static void interrupt_handler()
 {
     if(!acquiring)
         return;
     int timestamp = timer2_get_current_counter();
-    int bit_value = (timestamp - last_timestamp) > HI_BIT_THRESHOLD_TIME ? 0 : 1;
+    int bit_value = (timestamp - last_timestamp) > HI_BIT_THRESHOLD_TIME;
     last_timestamp = timestamp;
     if( timestamp < VALID_DATA_START_TIME ) 
         return;
     
-    if (bit_position < 32)
-        raw_data_lo |= bit_value << bit_position;
-    else
-        raw_data_hi |= bit_value << (bit_position - 32);
+    *buffer |= bit_value << bit_position;
     
     bit_position++;
+}
+
+static void reset()
+{
+    bit_position = 0;
+    last_timestamp = 0;
+    *buffer = 0;
+    acquiring = false;
 }
 
 void am2302_init()
 {
     timer2_init();
-    gpio_set_interrupt_on_rising(AM2302_PIN, am2302_interrupt_handler);
+    gpio_set_interrupt_on_rising(AM2302_PIN, interrupt_handler);
 }
 
-void am2302_acquire(void)
+void am2302_acquire()
 {
-    bit_position = 0;
-    last_timestamp = 0;
-    raw_data_lo = 0;
-    raw_data_hi = 0;
-    acquiring = false;
-    
+    reset();
     gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_OUT_PUSH_PULL);
     gpio_set_pin_low(AM2302_PIN);
     delay(35200);
@@ -67,12 +77,24 @@ void am2302_acquire(void)
     if(bit_position < 40)
         usart_puts("Timeout!\n");
     
-    usart_putc('L');
-    dump32h(raw_data_lo);
+    usart_putc('h');
+    dump16h(a.humidity);
     
-    usart_putc('H');
-    dump32h(raw_data_hi);
+    //usart_putc('H');dump16(a.humidity);
+ 
+    usart_putc('t');
+    dump16h(a.temperature);
     
-    usart_putc('P');
-    dump32h(bit_position);
+    //usart_putc('T');dump16(a.temperature);
+        
+    usart_putc('p');
+    dump16h(a.parity);
+    
+    usart_putc('e');
+    dump16h(a.empty);
+    
+    usart_putc('+');
+    dump16h(bit_position);
+    
+    usart_putc('\n');
 }
