@@ -61,3 +61,4 @@
 #define gpio_get_pin_state(PIN) GPIO_ReadInputDataBit(PIN)
 
 void gpio_set_pin_mode(GPIO_TypeDef* port, uint16_t pin, uint16_t mode);
+void gpio_set_interrupt_on_rising(GPIO_TypeDef* port, uint16_t pin, void *callback);

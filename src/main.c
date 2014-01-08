@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "stm32f10x.h"
 #include "usart.h"
+#include "am2302.h"
 #include "button.h"
 #include "leds.h"
 

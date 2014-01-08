@@ -1,17 +1,11 @@
 #include "stm32f10x.h"
-//#include <stdio.h>
-#include <sys/stat.h>
 #include <sys/errno.h>
 #include <sys/unistd.h>
-#include <sys/times.h>
-
 
 void usart_putc(uint8_t ch)
 {
     while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET) {}
     USART_SendData(USART1, (uint8_t) ch);
-    //Loop until the end of transmission
-    //while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET) {}
 }
 
 void usart_puts(volatile char *s)
@@ -79,7 +73,7 @@ void usart_init()
     printf("USART Initialized.\n");
 }
 
-void reverse(char* str, int length){
+static void reverse(char* str, int length){
     int i = 0, j = length-1;
     char tmp;
     while (i < j) {
@@ -90,7 +84,7 @@ void reverse(char* str, int length){
     }
 }
 
-int itoa(int n, char* out)
+static int itoa(int n, char* out)
 {
     int sign = n < 0? 1: 0;
     int i = 0;
@@ -109,7 +103,7 @@ int itoa(int n, char* out)
     return 0;
 }
 
-void tohex(uint16_t n, char* out)
+static void tohex(uint16_t n, char* out)
 {
     int i;
     char* hex = "0123456789ABCDEF";

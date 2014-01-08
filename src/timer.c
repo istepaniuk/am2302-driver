@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include "timer.h"
 #include "stm32f10x.h"
 #include "interrupts.h"
 
