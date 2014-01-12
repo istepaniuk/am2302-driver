@@ -53,10 +53,10 @@ static inline void reset()
 
 static inline int16_t get_2complement_from_signed_magnitude(uint16_t x) 
 {
-    int16_t sign_mask = 0x8FFF;
-    int16_t positive_part = x & sign_mask;
-    bool is_negative = (~sign_mask & x);
-    return is_negative ? -positive_part : positive_part;
+    int16_t sign_mask = 0x7FFF;
+    int16_t magintude = x & sign_mask;
+    bool is_negative = x & ~sign_mask;
+    return is_negative ? -magintude : magintude;
 }
 
 static uint16_t get_int16_from_bits(uint64_t bits, int offset)
