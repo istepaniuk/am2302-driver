@@ -22,6 +22,7 @@ CFLAGS += -Wall
 CFLAGS += -fmessage-length=0
 CFLAGS += -ffunction-sections 
 CFLAGS += -fdata-sections
+CFLAGS += -std=c99
 
 LSCRIPT = ./ld/stm32.ld
 #LFLAGS += -nostdlib
