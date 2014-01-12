@@ -5,13 +5,13 @@
 
 static bool finished = false;
 
-static void interrupt_handler()
+static void interrupt_handler(void)
 {
     timer2_stop();
     finished = true;    
 }
 
-static void setup_interrupt()
+static void setup_interrupt(void)
 {
 	NVIC_InitTypeDef NVIC_InitStructure;
     NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
@@ -22,7 +22,7 @@ static void setup_interrupt()
     set_timer2_interrupt_callback(interrupt_handler);
 }
 
-void timer2_init()
+void timer2_init(void)
 {
     setup_interrupt();
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
@@ -36,24 +36,24 @@ void timer2_init()
     TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
 }
 
-void timer2_start()
+inline void timer2_start(void)
 {
     finished = false;
     TIM_SetCounter(TIM2, 0);
     TIM_Cmd(TIM2, ENABLE);
 }
 
-void timer2_stop()
+inline void timer2_stop(void)
 {
     TIM_Cmd(TIM2, DISABLE);
 }
 
-bool timer2_has_finished()
+inline bool timer2_has_finished(void)
 {
     return finished;
 }
 
-int timer2_get_current_counter()
+inline int timer2_get_current_counter(void)
 {
     return TIM_GetCounter(TIM2);
 }

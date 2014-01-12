@@ -115,7 +115,7 @@ bool am2302_acquire_has_finished(void)
     return !acquiring;
 }
 
-struct am2302_sensor_data_t am2302_get_sensor_data()
+struct am2302_sensor_data_t am2302_get_sensor_data(void)
 {
     //TODO: Move this error result to the struct
     if(acquiring)
