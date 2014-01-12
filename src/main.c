@@ -9,6 +9,8 @@ void delay(int count) { while(count--){}; }
 
 int main(void)
 {
+    struct am2302_sensor_data_t sdata;
+        
     // Enable GPIO clock
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
@@ -24,8 +26,13 @@ int main(void)
 
     while(1) { 
         leds_turn_green_on();
-        am2302_acquire();
+        am2302_start_acquire(1);
+        while(!am2302_acquire_has_finished()) { }
+
+        sdata = am2302_get_sensor_data();
         leds_turn_green_off();
-        delay(8000000);
+        usart_puts("humi: "); printint(sdata.humidity); usart_puts("\n");
+        usart_puts("temp: "); printint(sdata.temperature); usart_puts("\n");
+        delay(9000000);
     }
 }

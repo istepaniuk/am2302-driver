@@ -25,7 +25,6 @@ static void setup_interrupt()
 void timer2_init()
 {
     setup_interrupt();
-    // Set timer
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
     // 50000/24 should give us a 1us tick, 50ms total

@@ -13,8 +13,8 @@ static void button_interrupt_handler()
 
 void button_init()
 {
-    gpio_set_pin_mode(BUTTON_PIN, GPIO_MODE_IN_FLOATING);
-    gpio_set_interrupt_on_rising(BUTTON_PIN, button_interrupt_handler);
+    gpio_set_pin_mode(&BUTTON_PIN, GPIO_MODE_IN_FLOATING);
+    gpio_set_interrupt_on_rising(&BUTTON_PIN, button_interrupt_handler);
 }
 
 bool button_is_depressed()

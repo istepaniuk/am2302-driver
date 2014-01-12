@@ -36,11 +36,6 @@ int _write(int file, char *ptr, int len) {
     return len;
 }
 
-void printf(char *ptr)
-{
-    usart_puts(ptr);
-}
-
 void usart_init()
 {
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE); 
@@ -70,7 +65,7 @@ void usart_init()
     /* Enable USART */
     USART_Cmd(USART1, ENABLE);
 
-    printf("USART Initialized.\n");
+    usart_puts("USART Initialized.\n");
 }
 
 static void reverse(char* str, int length){
@@ -115,6 +110,7 @@ static void tohex(uint16_t n, char* out)
     out[7] = '\0';
 }
 
+
 void printhex(uint16_t n)
 {
     char str_v[12];
@@ -128,5 +124,4 @@ void printint(uint16_t n)
     char str_v[12];
     itoa(n, str_v);
     usart_puts(str_v);
-    usart_putc('\n');
 }

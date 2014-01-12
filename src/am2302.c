@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <limits.h>
 #include "am2302.h"
 #include "interrupts.h"
 #include "usart.h"
@@ -12,43 +13,29 @@
 #define AM_HUMIDITY_DATA_OFFSET 0
 #define AM_TEMPERATURE_DATA_OFFSET 16
 #define AM_PARITY_DATA_OFFSET 32
-#define CHAR_BIT 8
+
+#define element_count(A) (sizeof(A) / sizeof(A[0]))
 
 static bool acquiring = false;
 static int bit_position;
 static int last_timestamp;
-uint64_t raw_data;
+static uint64_t raw_data;
 
-struct am2302_sensor_data
-{
-    uint16_t humidity;
-    int16_t temperature;
-};
-
-static inline void wait_1ms()
+static inline void wait_1ms(void)
 {
     int loops = 35200;
-    while(loops--){ };
+    while(loops--) { };
 }
 
-static void interrupt_handler()
+static void interrupt_handler(void)
 {
     if(!acquiring)
         return;
     int timestamp = timer2_get_current_counter();
     int bit_value = (timestamp - last_timestamp) > AM_HI_BIT_THRESHOLD_TIME;
-    last_timestamp = timestamp;
-    
     if (timestamp > AM_VALID_DATA_START_TIME)
         raw_data |= (uint64_t) bit_value << bit_position++;
-}
-
-static inline void reset()
-{
-    bit_position = 0;
-    last_timestamp = 0;
-    raw_data = 0;
-    acquiring = false;
+    last_timestamp = timestamp;
 }
 
 static inline int16_t get_2complement_from_signed_magnitude(uint16_t x) 
@@ -61,11 +48,10 @@ static inline int16_t get_2complement_from_signed_magnitude(uint16_t x)
 
 static uint16_t get_int16_from_bits(uint64_t bits, int offset)
 {
-    int i;
     int size = sizeof(uint16_t) * CHAR_BIT;
     int ouput_bit_pos = size;
     uint16_t result = 0;
-    for (i = 0; i < size; i++)
+    for (int i = 0; i < size; i++)
     {
         uint64_t bit_mask = ((uint64_t) 1) << (offset + i);
         int bit = (bits & bit_mask) > 0;
@@ -74,67 +60,78 @@ static uint16_t get_int16_from_bits(uint64_t bits, int offset)
     return result;
 }
 
-static inline struct am2302_sensor_data get_converted_sensor_data()
+static inline struct am2302_sensor_data_t get_converted_sensor_data(void)
 {
-    struct am2302_sensor_data sdata;
+    struct am2302_sensor_data_t sdata;
     sdata.humidity = get_int16_from_bits(raw_data, AM_HUMIDITY_DATA_OFFSET);
     sdata.temperature = get_int16_from_bits(raw_data, AM_TEMPERATURE_DATA_OFFSET);
     sdata.temperature = get_2complement_from_signed_magnitude(sdata.temperature);
     return sdata;
 }
 
-static inline uint8_t calculate_checksum()
+static inline uint8_t calculate_checksum(void)
 {
-    int i; 
     uint8_t checksum = 0;
-    for (i = 0; i < 4; i++)
+    for (int i = 0; i < 4; i++)
         checksum += get_int16_from_bits(raw_data, i * CHAR_BIT) >> CHAR_BIT;
     return checksum;
 }
 
-static inline bool has_parity_errors()
+static inline bool has_parity_errors(void)
 {
     uint8_t parity = get_int16_from_bits(raw_data, AM_PARITY_DATA_OFFSET) >> CHAR_BIT;
     return parity != calculate_checksum();
 }
 
-static inline void send_start_signal()
+static inline void send_start_signal(int device_index)
 {
-    gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_OUT_PUSH_PULL);
-    gpio_set_pin_low(AM2302_PIN);
+    pin_def_t* device_pin = &AM2302_PINS[device_index];
+    gpio_set_pin_mode(device_pin, GPIO_MODE_OUT_PUSH_PULL);
+    gpio_set_pin_low(device_pin);
     wait_1ms();
-    gpio_set_pin_high(AM2302_PIN);
-    gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_IN_FLOATING);
+    gpio_set_pin_high(device_pin);
+    gpio_set_pin_mode(device_pin, GPIO_MODE_IN_FLOATING);
 }
 
-void am2302_acquire()
+void am2302_start_acquire(int device_index)
 {
-    reset();
-    send_start_signal();  
+    if(acquiring)
+        return;
+    last_timestamp = 0;
+    bit_position = 0;
+    raw_data = 0;
+    send_start_signal(device_index); 
     timer2_start();
     acquiring = true;
-    while(!timer2_has_finished() && bit_position < AM_DATA_SIZE) { }
-    acquiring = false;
-    timer2_stop();
-    
-    if(bit_position < AM_DATA_SIZE)
-        usart_puts("Timeout\n");
-    
-    if(has_parity_errors())
-        usart_puts("Invalid data\n");
-    
-    struct am2302_sensor_data a = get_converted_sensor_data();
-    
-    usart_putc('h');
-    printint(a.humidity);
-    usart_putc('t');
-    printint(a.temperature);
-    
-    usart_putc('\n');
 }
 
-void am2302_init()
+bool am2302_acquire_has_finished(void)
 {
+    if(timer2_has_finished() || bit_position >= AM_DATA_SIZE) 
+    {
+        acquiring = false;
+        timer2_stop();
+    }
+    return !acquiring;
+}
+
+struct am2302_sensor_data_t am2302_get_sensor_data()
+{
+    //TODO: Move this error result to the struct
+    if(acquiring)
+        usart_puts("BUSY\n");
+    else if(!acquiring && bit_position < AM_DATA_SIZE)
+        usart_puts("TIMEOUT\n");
+    else if(has_parity_errors())
+        usart_puts("PARITY ERROR\n");
+    
+    return get_converted_sensor_data();
+}
+
+void am2302_init(void)
+{
+    pin_def_t* pins = &AM2302_PINS;
+    for(int i = 0; i < element_count(AM2302_PINS) ;i++)
+        gpio_set_interrupt_on_rising(&pins[i], interrupt_handler);
     timer2_init();
-    gpio_set_interrupt_on_rising(AM2302_PIN, interrupt_handler);
 }
