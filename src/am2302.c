@@ -94,7 +94,7 @@ static inline uint8_t calculate_checksum()
 
 static inline bool has_parity_errors()
 {
-    uint8_t parity = get_int16_from_bits(raw_data, 32) >> CHAR_BIT;
+    uint8_t parity = get_int16_from_bits(raw_data, AM_PARITY_DATA_OFFSET) >> CHAR_BIT;
     return parity != calculate_checksum();
 }
 
@@ -104,14 +104,13 @@ static inline void send_start_signal()
     gpio_set_pin_low(AM2302_PIN);
     wait_1ms();
     gpio_set_pin_high(AM2302_PIN);
-    gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_IN_PULL_UP);
+    gpio_set_pin_mode(AM2302_PIN, GPIO_MODE_IN_FLOATING);
 }
 
 void am2302_acquire()
 {
     reset();
     send_start_signal();  
-    
     timer2_start();
     acquiring = true;
     while(!timer2_has_finished() && bit_position < AM_DATA_SIZE) { }
